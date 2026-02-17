@@ -1,0 +1,101 @@
+import { createHash, randomBytes, randomInt } from "crypto";
+import { NextRequest, NextResponse } from "next/server";
+import { createChatIdentity, getChatIdentityByDevice } from "@/db";
+
+const DEVICE_COOKIE = "chat_device_id";
+const DEVICE_HEADER = "x-chat-device-id";
+const DEVICE_ID_PATTERN = /^[a-f0-9]{32}$/;
+const LEGACY_DEVICE_ID_PATTERN = /^[a-z0-9]{6}$/;
+const PUBLIC_ID_PATTERN = /^[a-z0-9]{6}$/;
+const MAX_GENERATION_ATTEMPTS = 20;
+
+function randomPublicId(): string {
+  const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let out = "";
+  for (let i = 0; i < 6; i++) {
+    out += alphabet[randomInt(0, alphabet.length)];
+  }
+  return out;
+}
+
+function normalizeLegacyDeviceId(deviceId: string): string {
+  return createHash("sha256").update(`legacy:${deviceId}`).digest("hex").slice(0, 32);
+}
+
+export function generateDeviceId(): string {
+  return randomBytes(16).toString("hex");
+}
+
+function validDeviceId(deviceId: string | undefined): deviceId is string {
+  return !!deviceId && DEVICE_ID_PATTERN.test(deviceId);
+}
+
+function validLegacyDeviceId(deviceId: string | undefined): deviceId is string {
+  return !!deviceId && LEGACY_DEVICE_ID_PATTERN.test(deviceId);
+}
+
+function resolveDeviceIdFromCookie(rawCookie: string | undefined): { deviceId?: string; shouldSetCookie: boolean } {
+  if (validDeviceId(rawCookie)) {
+    return { deviceId: rawCookie, shouldSetCookie: false };
+  }
+
+  if (validLegacyDeviceId(rawCookie)) {
+    return {
+      deviceId: normalizeLegacyDeviceId(rawCookie),
+      shouldSetCookie: true,
+    };
+  }
+
+  return { shouldSetCookie: true };
+}
+
+export interface ChatIdentity {
+  userId: string;
+  deviceId: string;
+  shouldSetCookie: boolean;
+}
+
+export async function resolveChatIdentity(req: NextRequest): Promise<ChatIdentity> {
+  const rawCookie = req.cookies.get(DEVICE_COOKIE)?.value;
+  const rawHeader = req.headers.get(DEVICE_HEADER)?.trim().toLowerCase();
+  const fromCookie = resolveDeviceIdFromCookie(rawCookie);
+  const fromHeader = validDeviceId(rawHeader) ? rawHeader : undefined;
+
+  const deviceId = fromCookie.deviceId ?? fromHeader ?? generateDeviceId();
+  const shouldSetCookie = fromCookie.shouldSetCookie || !!fromHeader;
+
+  const existing = await getChatIdentityByDevice(deviceId);
+  if (existing && PUBLIC_ID_PATTERN.test(existing.userId)) {
+    return {
+      userId: existing.userId,
+      deviceId,
+      shouldSetCookie,
+    };
+  }
+
+  for (let attempt = 0; attempt < MAX_GENERATION_ATTEMPTS; attempt++) {
+    const candidateId = randomPublicId();
+    const created = await createChatIdentity(deviceId, candidateId);
+    if (created && PUBLIC_ID_PATTERN.test(created.userId)) {
+      return {
+        userId: created.userId,
+        deviceId,
+        shouldSetCookie,
+      };
+    }
+  }
+
+  throw new Error("Unable to allocate a unique chat user ID");
+}
+
+export function setChatIdentityCookie(res: NextResponse, deviceId: string): void {
+  res.cookies.set({
+    name: DEVICE_COOKIE,
+    value: deviceId,
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+}

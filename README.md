@@ -5,7 +5,9 @@ EduChat is a standalone chat product repository built from the former chat direc
 Current build includes:
 - iMessage-inspired visual language (soft depth, rounded bubbles, calm hierarchy)
 - high-retention chat layout (fast scanning sidebar + immersive message canvas)
-- responsive interaction patterns (search, quick replies, typing state, delivery state)
+- persistent per-device identity with shareable 6-character user IDs (no login)
+- DB-backed multi-user contacts, messages, attachments, typing presence, and push subscriptions
+- realtime transport via WebSocket server + polling fallback
 - production-grade project baseline (lint, typecheck, build all clean)
 
 ## Stack
@@ -18,6 +20,7 @@ Current build includes:
 ## Scripts
 
 - `npm run dev` — start dev server
+- `npm run realtime` — start WebSocket realtime server (default `ws://localhost:3001`)
 - `npm run build` — production build
 - `npm run start` — run production server
 - `npm run lint` — lint checks
@@ -27,10 +30,23 @@ Current build includes:
 
 ```bash
 npm install
+npm run realtime
 npm run dev
 ```
 
 App runs at `http://localhost:3000`.
+
+## Environment Variables
+
+Create `.env.local` from `.env.example` and set:
+
+- `TURSO_DATABASE_URL` (optional, defaults to local `file:educhat.db`)
+- `TURSO_AUTH_TOKEN` (optional, for hosted Turso)
+- `NEXT_PUBLIC_WS_URL` (frontend websocket URL, example `ws://localhost:3001`)
+- `WS_PORT` (websocket server port, default `3001`)
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (required for push notifications)
+- `VAPID_PRIVATE_KEY` (required for push notifications)
+- `VAPID_SUBJECT` (contact URI, e.g. `mailto:admin@bahroun.me`)
 
 ## Deploy to educhat.bahroun.me
 
@@ -48,16 +64,18 @@ After propagation, production URL will be:
 
 ## Product Direction
 
-The UX is intentionally optimized for session length and return usage:
+Implemented UX direction:
 - low-friction compose flow
 - immediate conversational readability
 - emotionally warm visual system
 - clear interaction affordances with minimal cognitive load
 
-Next milestones:
-- realtime websocket transport
-- identity/auth + contacts graph
-- media/voice composer suite
-- notification and re-engagement loops
-- message actions (reply/thread/reaction/forward)
+Implemented backend/realtime scope:
+- auth identity via persistent device cookie/header mapping
+- contacts CRUD (add/list)
+- message send/load + incoming incremental sync
+- attachment upload + streaming endpoint
+- typing presence API
+- push subscription + web-push send on message
+- websocket relay server for typing + new message events
 
