@@ -32,6 +32,20 @@ npm run dev
 
 App runs at `http://localhost:3000`.
 
+## Deploy to educhat.bahroun.me
+
+1. Deploy this repo to Vercel (recommended for Next.js).
+2. In Vercel project settings, add custom domain: `educhat.bahroun.me`.
+3. Add DNS record at your DNS provider for `bahroun.me`:
+	- Type: `CNAME`
+	- Name/Host: `educhat`
+	- Target/Value: `cname.vercel-dns.com`
+	- Proxy: DNS only (if using Cloudflare)
+4. Wait for SSL issuance and domain verification in Vercel.
+
+After propagation, production URL will be:
+- `https://educhat.bahroun.me`
+
 ## Product Direction
 
 The UX is intentionally optimized for session length and return usage:
