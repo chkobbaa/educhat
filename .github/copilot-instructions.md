@@ -1,0 +1,19 @@
+- [x] Verify that the copilot-instructions.md file in the .github directory is created.
+- [x] Clarify Project Requirements
+- [x] Scaffold the Project
+  - Next.js App Router + TypeScript + Tailwind + ESLint + src layout scaffolded in `.`
+- [x] Customize the Project
+  - Replaced starter UI with iMessage-inspired, UX-first chat interface for EduChat
+- [x] Install Required Extensions
+  - No required extensions were provided by setup info
+- [x] Compile the Project
+  - `npm run lint`, `npm run typecheck`, and `npm run build` pass
+- [x] Create and Run Task
+  - Created and ran task: `Run EduChat Dev Server`
+- [x] Launch the Project
+  - Dev server is running locally via task
+- [x] Ensure Documentation is Complete
+  - `README.md` updated and this file cleaned of scaffold comments
+- Work through each checklist item systematically.
+- Keep communication concise and focused.
+- Follow development best practices.
